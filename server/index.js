@@ -22,12 +22,18 @@ app.use(cors({
   credentials: true
 }));
 
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutos
-  max: 100 // limite de 100 requests por IP
-});
-app.use(limiter);
+// Rate limiting - desabilitado para desenvolvimento
+// const limiter = rateLimit({
+//   windowMs: 1 * 60 * 1000, // 1 minuto
+//   max: 1000, // limite de 1000 requests por IP
+//   message: {
+//     error: 'Muitas requisições. Tente novamente em alguns segundos.',
+//     retryAfter: Math.ceil(1 * 60 / 1000)
+//   },
+//   standardHeaders: true,
+//   legacyHeaders: false
+// });
+// app.use(limiter);
 
 // Middleware para parsing
 app.use(express.json({ limit: '10mb' }));
@@ -51,11 +57,28 @@ app.get('/api/health', (req, res) => {
 
 // Middleware de tratamento de erros
 app.use((err, req, res, next) => {
-  console.error(err.stack);
+  console.error('❌ Erro no servidor:', {
+    method: req.method,
+    url: req.url,
+    error: err.message,
+    stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+  });
+  
   res.status(500).json({ 
     error: 'Erro interno do servidor',
-    message: process.env.NODE_ENV === 'development' ? err.message : 'Algo deu errado'
+    message: process.env.NODE_ENV === 'development' ? err.message : 'Algo deu errado',
+    timestamp: new Date().toISOString()
   });
+});
+
+// Middleware para capturar erros não tratados
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
+process.on('uncaughtException', (error) => {
+  console.error('❌ Uncaught Exception:', error);
+  process.exit(1);
 });
 
 // Rota para arquivos estáticos (quando em produção)

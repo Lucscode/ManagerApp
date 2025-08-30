@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Plus, Edit, Trash2, Shield } from 'lucide-react';
+import { Users as UsersIcon, Plus, Edit, Trash2, Shield } from 'lucide-react';
 import api from '../services/api';
 import toast from 'react-hot-toast';
 
@@ -53,7 +53,7 @@ const Users = () => {
         <div className="card-body">
           {users.length === 0 ? (
             <div className="text-center py-8">
-              <Users className="mx-auto h-12 w-12 text-gray-400" />
+              <UsersIcon className="mx-auto h-12 w-12 text-gray-400" />
               <h3 className="mt-2 text-sm font-medium text-gray-900">Nenhum usuário encontrado</h3>
               <p className="mt-1 text-sm text-gray-500">
                 Comece criando um novo usuário.

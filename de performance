@@ -1,0 +1,11 @@
+warning: in the working copy of 'client/src/pages/Clients.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'client/src/pages/Users.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'client/src/pages/Vehicles.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'server/index.js', LF will be replaced by CRLF the next time Git touches it
+client/package-lock.json
+client/src/pages/Clients.js
+client/src/pages/Users.js
+client/src/pages/Vehicles.js
+server/index.js
+server/package-lock.json
+server/package.json

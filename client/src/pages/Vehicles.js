@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { Plus, Search, Edit, Trash2, Car } from 'lucide-react';
 import api from '../services/api';
@@ -11,6 +11,7 @@ const Vehicles = () => {
   const [showModal, setShowModal] = useState(false);
   const [editingVehicle, setEditingVehicle] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
 
   const {
     register,
@@ -19,15 +20,24 @@ const Vehicles = () => {
     formState: { errors },
   } = useForm();
 
+  // Debounce para o termo de busca
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 500); // 500ms de delay
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
   useEffect(() => {
     loadData();
-  }, [searchTerm]);
+  }, [debouncedSearchTerm]);
 
   const loadData = async () => {
     try {
       setLoading(true);
       const [vehiclesResponse, clientsResponse] = await Promise.all([
-        api.get('/api/vehicles', { params: { search: searchTerm || undefined } }),
+        api.get('/api/vehicles', { params: { search: debouncedSearchTerm || undefined } }),
         api.get('/api/clients', { params: { active: true } })
       ]);
       setVehicles(vehiclesResponse.data.vehicles);

@@ -10,6 +10,7 @@ const Clients = () => {
   const [showModal, setShowModal] = useState(false);
   const [editingClient, setEditingClient] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [filterActive, setFilterActive] = useState(true);
 
   const {
@@ -19,16 +20,25 @@ const Clients = () => {
     formState: { errors },
   } = useForm();
 
+  // Debounce para o termo de busca
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 500); // 500ms de delay
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
   useEffect(() => {
     loadClients();
-  }, [searchTerm, filterActive]);
+  }, [debouncedSearchTerm, filterActive]);
 
   const loadClients = async () => {
     try {
       setLoading(true);
       const response = await api.get('/api/clients', {
         params: {
-          search: searchTerm || undefined,
+          search: debouncedSearchTerm || undefined,
           active: filterActive
         }
       });
