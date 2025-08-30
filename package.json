@@ -10,11 +10,17 @@
     "build": "cd client && npm run build",
     "install-all": "npm install && cd server && npm install && cd ../client && npm install"
   },
-  "keywords": ["lava-rápido", "gerenciamento", "agendamento"],
+  "keywords": [
+    "lava-rápido",
+    "gerenciamento",
+    "agendamento"
+  ],
   "author": "ManagerApp Team",
   "license": "MIT",
   "devDependencies": {
     "concurrently": "^8.2.2"
+  },
+  "dependencies": {
+    "date-fns": "^4.1.0"
   }
 }
-

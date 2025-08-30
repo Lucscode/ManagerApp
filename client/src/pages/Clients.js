@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { Plus, Search, Edit, Trash2, Eye, Phone, Mail, Users } from 'lucide-react';
 import api from '../services/api';
@@ -29,11 +29,7 @@ const Clients = () => {
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
-  useEffect(() => {
-    loadClients();
-  }, [debouncedSearchTerm, filterActive]);
-
-  const loadClients = async () => {
+  const loadClients = useCallback(async () => {
     try {
       setLoading(true);
       const response = await api.get('/api/clients', {
@@ -49,7 +45,11 @@ const Clients = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [debouncedSearchTerm, filterActive]);
+
+  useEffect(() => {
+    loadClients();
+  }, [loadClients]);
 
   const onSubmit = async (data) => {
     try {

@@ -6,10 +6,8 @@ import {
   Car,
   Calendar,
   DollarSign,
-  TrendingUp,
   Clock,
-  CheckCircle,
-  AlertCircle
+  CheckCircle
 } from 'lucide-react';
 import api from '../services/api';
 

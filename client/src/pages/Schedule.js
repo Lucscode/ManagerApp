@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Calendar, Plus, Clock, User, Car } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -10,11 +10,7 @@ const Schedule = () => {
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
 
-  useEffect(() => {
-    loadSchedules();
-  }, [selectedDate]);
-
-  const loadSchedules = async () => {
+  const loadSchedules = useCallback(async () => {
     try {
       setLoading(true);
       const response = await api.get('/api/schedule', {
@@ -30,7 +26,11 @@ const Schedule = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedDate]);
+
+  useEffect(() => {
+    loadSchedules();
+  }, [loadSchedules]);
 
   const getStatusColor = (status) => {
     switch (status) {

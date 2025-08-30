@@ -29,11 +29,7 @@ const Vehicles = () => {
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
-  useEffect(() => {
-    loadData();
-  }, [debouncedSearchTerm]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true);
       const [vehiclesResponse, clientsResponse] = await Promise.all([
@@ -48,7 +44,11 @@ const Vehicles = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [debouncedSearchTerm]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const onSubmit = async (data) => {
     try {
