@@ -47,3 +47,9 @@ Sistema completo de gerenciamento para lava-rápido, desenvolvido com React (fro
 
 - Node.js 16+ 
 - npm ou yarn
+_______________________________________________________________________
+✅ Debounce implementado nas buscas de Veículos e Clientes
+✅ Conflito de nomes corrigido no componente Users
+✅ Rate limiting desabilitado para desenvolvimento
+✅ Dependências adicionadas (react-hook-form, react-hot-toast)
+✅ Tratamento de erros melhorado no backend
