@@ -36,8 +36,8 @@ npm run dev
 ## 🔐 Credenciais de Acesso
 
 Após a primeira execução, use:
-- **Email**: admin@managerapp.com
-- **Senha**: admin123
+- **Email**: lucasalexandredmpereira@gmail.com
+- **Senha**: Senh@123
 
 ## 🛠️ Comandos Úteis
 

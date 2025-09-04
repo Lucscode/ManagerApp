@@ -10,6 +10,7 @@ const clientRoutes = require('./routes/clients');
 const vehicleRoutes = require('./routes/vehicles');
 const serviceRoutes = require('./routes/services');
 const scheduleRoutes = require('./routes/schedule');
+const reportRoutes = require('./routes/reports');
 const { initializeDatabase } = require('./database/init');
 
 const app = express();
@@ -45,6 +46,7 @@ app.use('/api/clients', clientRoutes);
 app.use('/api/vehicles', vehicleRoutes);
 app.use('/api/services', serviceRoutes);
 app.use('/api/schedule', scheduleRoutes);
+app.use('/api/reports', reportRoutes);
 
 // Rota de health check
 app.get('/api/health', (req, res) => {
