@@ -10,6 +10,10 @@ import Services from './pages/Services';
 import Schedule from './pages/Schedule';
 import Users from './pages/Users';
 import Layout from './components/Layout';
+import PortalLogin from './pages/PortalLogin';
+import PortalHistory from './pages/PortalHistory';
+import PortalReschedule from './pages/PortalReschedule';
+import PortalRegister from './pages/PortalRegister';
 
 // Componente para rotas protegidas
 const ProtectedRoute = ({ children }) => {
@@ -72,6 +76,12 @@ function App() {
           />
           
           <Routes>
+            {/* Portal do Cliente (público) */}
+            <Route path="/portal/login" element={<PortalLogin />} />
+            <Route path="/portal/register" element={<PortalRegister />} />
+            <Route path="/portal/history" element={<PortalHistory />} />
+            <Route path="/portal/reschedule/:scheduleId" element={<PortalReschedule />} />
+
             {/* Rota pública */}
             <Route path="/login" element={<Login />} />
             

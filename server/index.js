@@ -11,6 +11,7 @@ const vehicleRoutes = require('./routes/vehicles');
 const serviceRoutes = require('./routes/services');
 const scheduleRoutes = require('./routes/schedule');
 const reportRoutes = require('./routes/reports');
+const portalRoutes = require('./routes/portal');
 const { initializeDatabase } = require('./database/init');
 
 const app = express();
@@ -47,6 +48,7 @@ app.use('/api/vehicles', vehicleRoutes);
 app.use('/api/services', serviceRoutes);
 app.use('/api/schedule', scheduleRoutes);
 app.use('/api/reports', reportRoutes);
+app.use('/api/portal', portalRoutes);
 
 // Rota de health check
 app.get('/api/health', (req, res) => {
