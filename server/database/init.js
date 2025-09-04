@@ -65,6 +65,9 @@ async function initializeDatabase() {
           FOREIGN KEY (client_id) REFERENCES clients (id) ON DELETE CASCADE
         )
       `);
+      // Novas colunas para detalhes do veículo
+      runSilently(`ALTER TABLE vehicles ADD COLUMN type_text TEXT`);
+      runSilently(`ALTER TABLE vehicles ADD COLUMN size TEXT`);
 
       // Tabela de tipos de veículo (porte)
       db.run(`
@@ -91,6 +94,10 @@ async function initializeDatabase() {
           FOREIGN KEY (vehicle_type_id) REFERENCES vehicle_types (id)
         )
       `);
+      // Índice único para evitar duplicação por seed
+      runSilently(`CREATE UNIQUE INDEX IF NOT EXISTS uniq_services_name_type ON services(name, vehicle_type_id)`);
+      // Limpeza de duplicados existentes por nome+tamanho (mantém menor id)
+      runSilently(`DELETE FROM services WHERE id NOT IN (SELECT MIN(id) FROM services GROUP BY name, vehicle_type_id)`);
 
       // Tabela de agendamentos
       db.run(`

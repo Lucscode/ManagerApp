@@ -203,6 +203,16 @@ const Vehicles = () => {
                           <div className="text-sm text-gray-500">
                             {vehicle.color} {vehicle.year && `(${vehicle.year})`}
                           </div>
+                          {(vehicle.size || vehicle.type_text) && (
+                            <div className="mt-1 flex flex-wrap gap-2">
+                              {vehicle.size && (
+                                <span className="badge badge-info">{vehicle.size}</span>
+                              )}
+                              {vehicle.type_text && (
+                                <span className="badge badge-info">{vehicle.type_text}</span>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </td>
                       <td className="table-cell">

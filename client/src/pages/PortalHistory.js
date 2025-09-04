@@ -48,12 +48,20 @@ const PortalHistory = () => {
             <h1 className="text-2xl font-bold text-gray-900">Meu Histórico</h1>
             <p className="text-sm text-gray-500">Veja seus serviços realizados e agendamentos.</p>
           </div>
-          <button
-            onClick={() => { localStorage.removeItem('portal_token'); window.location.href = '/portal/login'; }}
-            className="btn-outline"
-          >
-            Sair
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => navigate('/portal/new')}
+              className="btn-primary"
+            >
+              Novo agendamento
+            </button>
+            <button
+              onClick={() => { localStorage.removeItem('portal_token'); window.location.href = '/portal/login'; }}
+              className="btn-outline"
+            >
+              Sair
+            </button>
+          </div>
         </div>
 
         <div className="card">

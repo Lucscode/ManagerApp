@@ -10,11 +10,25 @@ import {
   CheckCircle
 } from 'lucide-react';
 import api from '../services/api';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  CartesianGrid,
+  Legend
+} from 'recharts';
 
 const Dashboard = () => {
   const [stats, setStats] = useState(null);
   const [recentSchedules, setRecentSchedules] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Novos estados para relatórios
+  const [revenueData, setRevenueData] = useState([]);
+  const [topServicesData, setTopServicesData] = useState([]);
 
   useEffect(() => {
     loadDashboardData();
@@ -23,25 +37,50 @@ const Dashboard = () => {
   const loadDashboardData = async () => {
     try {
       setLoading(true);
-      
-      // Carregar estatísticas
+      // Datas padrão: mês atual
+      const startOfMonth = new Date();
+      startOfMonth.setDate(1);
+      const from = format(startOfMonth, 'yyyy-MM-dd');
+      const to = format(new Date(), 'yyyy-MM-dd');
+
+      // Carregar estatísticas principais existentes
       const statsResponse = await api.get('/api/schedule/stats/overview', {
         params: {
-          start_date: format(new Date().setDate(1), 'yyyy-MM-dd'), // Primeiro dia do mês
-          end_date: format(new Date(), 'yyyy-MM-dd') // Hoje
+          start_date: format(new Date().setDate(1), 'yyyy-MM-dd'),
+          end_date: format(new Date(), 'yyyy-MM-dd')
         }
       });
-      
-      // Carregar agendamentos recentes
+
       const schedulesResponse = await api.get('/api/schedule', {
         params: {
           start_date: format(new Date(), 'yyyy-MM-dd'),
-          end_date: format(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd') // Próximos 7 dias
+          end_date: format(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd')
         }
       });
-      
+
+      // Carregar relatórios (faturamento e top serviços)
+      const [revenueResp, topServicesResp] = await Promise.all([
+        api.get('/api/reports/revenue', { params: { from, to } }),
+        api.get('/api/reports/top-services', { params: { from, to, limit: 5 } })
+      ]);
+
+      // Normalizar dados para gráficos
+      const revenueRows = (revenueResp.data?.rows || []).map(r => ({
+        date: r.date,
+        revenue: Number(r.revenue || 0),
+        total_services: Number(r.total_services || 0)
+      }));
+
+      const topServicesRows = (topServicesResp.data?.rows || []).map(r => ({
+        name: r.name,
+        revenue: Number(r.revenue || 0),
+        qty: Number(r.qty || 0)
+      }));
+
       setStats(statsResponse.data);
-      setRecentSchedules(schedulesResponse.data.schedules.slice(0, 5)); // Últimos 5 agendamentos
+      setRecentSchedules(schedulesResponse.data.schedules.slice(0, 5));
+      setRevenueData(revenueRows);
+      setTopServicesData(topServicesRows);
     } catch (error) {
       console.error('Erro ao carregar dados do dashboard:', error);
     } finally {
@@ -95,6 +134,57 @@ const Dashboard = () => {
         <p className="mt-1 text-sm text-gray-500">
           Visão geral do sistema - {format(new Date(), "EEEE, d 'de' MMMM 'de' yyyy", { locale: ptBR })}
         </p>
+      </div>
+
+      {/* Gráficos */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Faturamento por dia (barras) */}
+        <div className="card">
+          <div className="card-header">
+            <h2 className="text-lg font-semibold text-gray-900 flex items-center">
+              <DollarSign className="h-5 w-5 mr-2 text-primary-600" /> Faturamento (mês atual)
+            </h2>
+          </div>
+          <div className="card-body">
+            <div style={{ width: '100%', height: 300 }}>
+              <ResponsiveContainer>
+                <BarChart data={revenueData} margin={{ top: 10, right: 20, bottom: 0, left: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="date" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="revenue" name="Faturamento" fill="#2563eb" />
+                  <Bar dataKey="total_services" name="Qtde Serviços" fill="#16a34a" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
+
+        {/* Top serviços (barras) */}
+        <div className="card">
+          <div className="card-header">
+            <h2 className="text-lg font-semibold text-gray-900 flex items-center">
+              <CheckCircle className="h-5 w-5 mr-2 text-primary-600" /> Serviços mais vendidos
+            </h2>
+          </div>
+          <div className="card-body">
+            <div style={{ width: '100%', height: 300 }}>
+              <ResponsiveContainer>
+                <BarChart data={topServicesData} margin={{ top: 10, right: 20, bottom: 0, left: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="qty" name="Quantidade" fill="#16a34a" />
+                  <Bar dataKey="revenue" name="Faturamento" fill="#2563eb" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Cards de estatísticas */}

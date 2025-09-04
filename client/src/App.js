@@ -14,6 +14,7 @@ import PortalLogin from './pages/PortalLogin';
 import PortalHistory from './pages/PortalHistory';
 import PortalReschedule from './pages/PortalReschedule';
 import PortalRegister from './pages/PortalRegister';
+import PortalNewSchedule from './pages/PortalNewSchedule';
 
 // Componente para rotas protegidas
 const ProtectedRoute = ({ children }) => {
@@ -81,6 +82,7 @@ function App() {
             <Route path="/portal/register" element={<PortalRegister />} />
             <Route path="/portal/history" element={<PortalHistory />} />
             <Route path="/portal/reschedule/:scheduleId" element={<PortalReschedule />} />
+            <Route path="/portal/new" element={<PortalNewSchedule />} />
 
             {/* Rota pública */}
             <Route path="/login" element={<Login />} />
