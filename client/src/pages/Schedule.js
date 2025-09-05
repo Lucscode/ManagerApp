@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Calendar, Plus, Clock, User, Car } from 'lucide-react';
+import { Calendar, Plus, Clock, User, Car, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import api from '../services/api';
@@ -8,17 +8,18 @@ import toast from 'react-hot-toast';
 const Schedule = () => {
   const [schedules, setSchedules] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  // Quando vazio, significa "sem filtro de data" (listar todos)
+  const [selectedDate, setSelectedDate] = useState('');
 
   const loadSchedules = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await api.get('/api/schedule', {
-        params: {
-          start_date: selectedDate,
-          end_date: selectedDate
-        }
-      });
+      const params = {};
+      if (selectedDate) {
+        params.start_date = selectedDate;
+        params.end_date = selectedDate;
+      }
+      const response = await api.get('/api/schedule', { params });
       setSchedules(response.data.schedules);
     } catch (error) {
       console.error('Erro ao carregar agendamentos:', error);
@@ -40,6 +41,8 @@ const Schedule = () => {
         return 'bg-yellow-100 text-yellow-800';
       case 'completed':
         return 'bg-green-100 text-green-800';
+      case 'paid':
+        return 'bg-green-200 text-green-900';
       case 'cancelled':
         return 'bg-red-100 text-red-800';
       default:
@@ -55,10 +58,38 @@ const Schedule = () => {
         return 'Em Andamento';
       case 'completed':
         return 'Concluído';
+      case 'paid':
+        return 'Pago';
       case 'cancelled':
         return 'Cancelado';
       default:
         return status;
+    }
+  };
+
+  const action = async (id, kind) => {
+    try {
+      if (kind === 'pay') {
+        const method = window.prompt('Método de pagamento (pix/cartao/dinheiro):', 'pix');
+        if (!method) return;
+        const amountStr = window.prompt('Valor pago (ex.: 25.00):');
+        if (!amountStr) return;
+        const amount = Number(amountStr.replace(',', '.'));
+        await api.post(`/api/schedule/${id}/pay`, { method, amount });
+        toast.success('Pagamento confirmado');
+      } else {
+        await api.post(`/api/schedule/${id}/${kind}`);
+        const msg = {
+          start: 'Serviço iniciado',
+          complete: 'Serviço concluído',
+          cancel: 'Agendamento cancelado'
+        }[kind];
+        if (msg) toast.success(msg);
+      }
+      loadSchedules();
+    } catch (err) {
+      const msg = err.response?.data?.error || 'Erro na ação';
+      toast.error(msg);
     }
   };
 
@@ -89,9 +120,9 @@ const Schedule = () => {
       {/* Filtros */}
       <div className="card">
         <div className="card-body">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="label">Data</label>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+            <div className="md:col-span-2">
+              <label className="label">Data (opcional)</label>
               <input
                 type="date"
                 value={selectedDate}
@@ -99,12 +130,15 @@ const Schedule = () => {
                 className="input"
               />
             </div>
-            <div className="flex items-end">
+            <div className="flex gap-2">
+              <button onClick={loadSchedules} className="btn-outline w-full">Filtrar</button>
               <button
-                onClick={loadSchedules}
-                className="btn-outline w-full"
+                type="button"
+                className="btn-secondary"
+                onClick={() => { setSelectedDate(''); setTimeout(loadSchedules, 0); }}
+                title="Limpar filtro de data"
               >
-                Filtrar
+                Limpar
               </button>
             </div>
           </div>
@@ -115,7 +149,9 @@ const Schedule = () => {
       <div className="card">
         <div className="card-header">
           <h3 className="text-lg leading-6 font-medium text-gray-900">
-            Agendamentos - {format(new Date(selectedDate), "EEEE, d 'de' MMMM 'de' yyyy", { locale: ptBR })}
+            {selectedDate
+              ? <>Agendamentos - {format(new Date(selectedDate), "EEEE, d 'de' MMMM 'de' yyyy", { locale: ptBR })}</>
+              : 'Agendamentos - Todos'}
           </h3>
         </div>
         <div className="card-body">
@@ -124,7 +160,7 @@ const Schedule = () => {
               <Calendar className="mx-auto h-12 w-12 text-gray-400" />
               <h3 className="mt-2 text-sm font-medium text-gray-900">Nenhum agendamento</h3>
               <p className="mt-1 text-sm text-gray-500">
-                Não há agendamentos para esta data.
+                {selectedDate ? 'Não há agendamentos para esta data.' : 'Não há agendamentos cadastrados.'}
               </p>
             </div>
           ) : (
@@ -135,7 +171,7 @@ const Schedule = () => {
                     <div className="flex items-center space-x-4">
                       <div className="flex items-center text-sm text-gray-500">
                         <Clock className="h-4 w-4 mr-1" />
-                        {schedule.scheduled_time}
+                        {schedule.scheduled_time} ({schedule.scheduled_date})
                       </div>
                       <div className="flex items-center text-sm text-gray-500">
                         <User className="h-4 w-4 mr-1" />
@@ -153,6 +189,11 @@ const Schedule = () => {
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(schedule.status)}`}>
                         {getStatusText(schedule.status)}
                       </span>
+                      {schedule.payment_status && (
+                        <span className="badge badge-info text-xs">
+                          {schedule.payment_status}{schedule.payment_method ? ` • ${schedule.payment_method}` : ''}
+                        </span>
+                      )}
                     </div>
                   </div>
                   {schedule.notes && (
@@ -160,6 +201,25 @@ const Schedule = () => {
                       <strong>Observações:</strong> {schedule.notes}
                     </div>
                   )}
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {schedule.status === 'scheduled' && (
+                      <>
+                        <button className="btn-secondary" onClick={() => action(schedule.id, 'start')}>Iniciar</button>
+                        <button className="btn-outline" onClick={() => action(schedule.id, 'cancel')}>Cancelar</button>
+                      </>
+                    )}
+                    {schedule.status === 'in_progress' && (
+                      <>
+                        <button className="btn-success" onClick={() => action(schedule.id, 'complete')}>Concluir</button>
+                        <button className="btn-outline" onClick={() => action(schedule.id, 'cancel')}>Cancelar</button>
+                      </>
+                    )}
+                    {schedule.status === 'completed' && (
+                      <>
+                        <button className="btn-primary" onClick={() => action(schedule.id, 'pay')}>Confirmar Pagamento</button>
+                      </>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>

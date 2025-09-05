@@ -177,7 +177,7 @@ router.get('/history', authenticatePortal, async (req, res) => {
 // ===== Novo agendamento =====
 router.post('/schedule', authenticatePortal, async (req, res) => {
   try {
-    const { vehicle_id, service_id, date, time, notes } = req.body;
+    const { vehicle_id, service_id, date, time, notes, payment_method } = req.body;
     if (!vehicle_id || !service_id || !date || !time) {
       return res.status(400).json({ error: 'Dados do agendamento incompletos' });
     }
@@ -187,7 +187,7 @@ router.post('/schedule', authenticatePortal, async (req, res) => {
     if (!vehicle) return res.status(400).json({ error: 'Veículo inválido' });
 
     // Verifica serviço ativo
-    const service = await get('SELECT id, duration_minutes FROM services WHERE id = ? AND active = 1', [service_id]);
+    const service = await get('SELECT id, duration_minutes, price FROM services WHERE id = ? AND active = 1', [service_id]);
     if (!service) return res.status(400).json({ error: 'Serviço inválido' });
 
     // Valida data futura
@@ -210,9 +210,20 @@ router.post('/schedule', authenticatePortal, async (req, res) => {
       return res.status(409).json({ error: 'Horário indisponível' });
     }
 
+    // Pagamento: registra intenção
+    let payStatus = null;
+    let payMethod = null;
+    if (payment_method) {
+      const allowed = ['pix','cartao','dinheiro'];
+      const m = String(payment_method).toLowerCase();
+      if (!allowed.includes(m)) return res.status(400).json({ error: 'Método de pagamento inválido' });
+      payMethod = m;
+      payStatus = m === 'dinheiro' ? 'unpaid' : 'pending';
+    }
+
     const result = await run(
-      'INSERT INTO schedules (client_id, vehicle_id, service_id, scheduled_date, scheduled_time, status, notes, created_by) VALUES (?, ?, ?, ?, ?, "scheduled", ?, ?)',
-      [req.customer.client_id, vehicle_id, service_id, date, time, notes || null, req.customer.client_id]
+      'INSERT INTO schedules (client_id, vehicle_id, service_id, scheduled_date, scheduled_time, status, notes, created_by, payment_status, payment_method) VALUES (?, ?, ?, ?, ?, "scheduled", ?, ?, ?, ?)',
+      [req.customer.client_id, vehicle_id, service_id, date, time, notes || null, req.customer.client_id, payStatus, payMethod]
     );
 
     res.status(201).json({ message: 'Agendamento criado com sucesso', id: result.id });

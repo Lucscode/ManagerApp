@@ -31,13 +31,13 @@ router.get('/', async (req, res) => {
              v.license_plate, v.model, v.brand, v.color,
              sv.name as service_name, sv.price, sv.duration_minutes,
              vt.name as vehicle_type_name,
-             u.name as created_by_name
+             COALESCE(u.name, 'Portal') as created_by_name
       FROM schedules s 
       JOIN clients c ON s.client_id = c.id 
       JOIN vehicles v ON s.vehicle_id = v.id 
       JOIN services sv ON s.service_id = sv.id 
       JOIN vehicle_types vt ON sv.vehicle_type_id = vt.id
-      JOIN users u ON s.created_by = u.id
+      LEFT JOIN users u ON s.created_by = u.id
       WHERE 1=1
     `;
     const params = [];
@@ -104,13 +104,13 @@ router.get('/:id', async (req, res) => {
              v.license_plate, v.model, v.brand, v.color,
              sv.name as service_name, sv.price, sv.duration_minutes,
              vt.name as vehicle_type_name,
-             u.name as created_by_name
+             COALESCE(u.name, 'Portal') as created_by_name
       FROM schedules s 
       JOIN clients c ON s.client_id = c.id 
       JOIN vehicles v ON s.vehicle_id = v.id 
       JOIN services sv ON s.service_id = sv.id 
       JOIN vehicle_types vt ON sv.vehicle_type_id = vt.id
-      JOIN users u ON s.created_by = u.id
+      LEFT JOIN users u ON s.created_by = u.id
       WHERE s.id = ?
     `, [id]);
     
@@ -636,6 +636,79 @@ router.get('/stats/overview', async (req, res) => {
       error: 'Erro interno do servidor',
       message: 'Erro ao buscar estatísticas'
     });
+  }
+});
+
+// Iniciar serviço
+router.post('/:id/start', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const sched = await get('SELECT id, status FROM schedules WHERE id = ?', [id]);
+    if (!sched) return res.status(404).json({ error: 'Agendamento não encontrado' });
+    if (sched.status !== 'scheduled') return res.status(400).json({ error: 'Somente agendamentos "scheduled" podem iniciar' });
+
+    await run('UPDATE schedules SET status = "in_progress", in_progress_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [id]);
+    res.json({ message: 'Serviço iniciado' });
+  } catch (error) {
+    console.error('start schedule:', error);
+    res.status(500).json({ error: 'Erro ao iniciar' });
+  }
+});
+
+// Concluir serviço
+router.post('/:id/complete', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const sched = await get('SELECT id, status FROM schedules WHERE id = ?', [id]);
+    if (!sched) return res.status(404).json({ error: 'Agendamento não encontrado' });
+    if (sched.status !== 'in_progress') return res.status(400).json({ error: 'Somente serviços em andamento podem concluir' });
+
+    await run('UPDATE schedules SET status = "completed", completed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [id]);
+    res.json({ message: 'Serviço concluído' });
+  } catch (error) {
+    console.error('complete schedule:', error);
+    res.status(500).json({ error: 'Erro ao concluir' });
+  }
+});
+
+// Cancelar serviço
+router.post('/:id/cancel', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const sched = await get('SELECT id, status FROM schedules WHERE id = ?', [id]);
+    if (!sched) return res.status(404).json({ error: 'Agendamento não encontrado' });
+    if (['completed','paid','cancelled'].includes(sched.status)) return res.status(400).json({ error: 'Não é possível cancelar' });
+
+    await run('UPDATE schedules SET status = "cancelled", updated_at = CURRENT_TIMESTAMP WHERE id = ?', [id]);
+    res.json({ message: 'Agendamento cancelado' });
+  } catch (error) {
+    console.error('cancel schedule:', error);
+    res.status(500).json({ error: 'Erro ao cancelar' });
+  }
+});
+
+// Confirmar pagamento
+router.post('/:id/pay', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { method, amount } = req.body;
+    if (!method) return res.status(400).json({ error: 'Informe o método de pagamento' });
+
+    const sched = await get('SELECT id, status, service_id FROM schedules WHERE id = ?', [id]);
+    if (!sched) return res.status(404).json({ error: 'Agendamento não encontrado' });
+    if (!['completed','in_progress'].includes(sched.status)) return res.status(400).json({ error: 'Pagamento permitido após conclusão' });
+
+    let finalAmount = amount;
+    if (finalAmount === undefined || finalAmount === null || finalAmount === '') {
+      const sv = await get('SELECT price FROM services WHERE id = ?', [sched.service_id]);
+      finalAmount = sv?.price ?? 0;
+    }
+
+    await run('UPDATE schedules SET status = "paid", payment_status = "paid", payment_method = ?, amount_paid = ?, paid_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [method, finalAmount, id]);
+    res.json({ message: 'Pagamento confirmado' });
+  } catch (error) {
+    console.error('pay schedule:', error);
+    res.status(500).json({ error: 'Erro ao confirmar pagamento' });
   }
 });
 

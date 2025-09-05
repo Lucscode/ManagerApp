@@ -32,6 +32,7 @@ const PortalNewSchedule = () => {
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
   const [loading, setLoading] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState('dinheiro');
   const [suggested, setSuggested] = useState([]);
 
   // Campos para novo veículo (apenas essenciais como obrigatórios)
@@ -41,7 +42,6 @@ const PortalNewSchedule = () => {
     model: '',
     color: '',
     year: '',
-    type_text: '',
     size: ''
   });
 
@@ -166,7 +166,8 @@ const PortalNewSchedule = () => {
         vehicle_id: Number(vehicleId),
         service_id: Number(serviceId),
         date,
-        time
+        time,
+        payment_method: paymentMethod
       }, { headers: { Authorization: `Bearer ${token}` } });
       toast.success('Agendamento criado!');
       navigate('/portal/history');
@@ -246,6 +247,23 @@ const PortalNewSchedule = () => {
                 <input type="time" className="input" value={time} onChange={(e) => setTime(e.target.value)} />
               </div>
             </div>
+            <div>
+              <label className="label">Forma de pagamento</label>
+              <div className="flex gap-2">
+                {[
+                  { key: 'pix', label: 'PIX' },
+                  { key: 'cartao', label: 'Cartão' },
+                  { key: 'dinheiro', label: 'Dinheiro' },
+                ].map(opt => (
+                  <button type="button" key={opt.key} onClick={() => setPaymentMethod(opt.key)} className={`px-3 py-2 rounded border ${paymentMethod===opt.key ? 'bg-primary-600 text-white border-primary-600' : 'bg-white text-gray-700 border-gray-300'}`}>
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                PIX/Cartão: pagamento online (confirmado no balcão). Dinheiro: pago presencialmente.
+              </p>
+            </div>
             <div className="flex gap-3">
               <button type="button" className="btn-outline w-1/2" onClick={() => navigate('/portal/history')}>Cancelar</button>
               <button type="submit" className="btn-primary w-1/2" disabled={loading}>{loading ? 'Agendando...' : 'Agendar'}</button>
@@ -291,10 +309,6 @@ const PortalNewSchedule = () => {
               <div>
                 <label className="label">Ano</label>
                 <input className="input" type="number" value={newVeh.year} onChange={(e) => setNewVeh({ ...newVeh, year: e.target.value })} />
-              </div>
-              <div className="md:col-span-2">
-                <label className="label">Tipo do veículo (opcional)</label>
-                <input className="input" value={newVeh.type_text} onChange={(e) => setNewVeh({ ...newVeh, type_text: e.target.value })} placeholder="Sedan, Hatch, SUV, Moto..." />
               </div>
               <div className="md:col-span-2">
                 <button className="btn-secondary w-full" type="submit">Salvar veículo</button>

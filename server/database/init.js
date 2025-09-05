@@ -108,7 +108,7 @@ async function initializeDatabase() {
           service_id INTEGER NOT NULL,
           scheduled_date DATE NOT NULL,
           scheduled_time TIME NOT NULL,
-          status TEXT DEFAULT 'scheduled' CHECK(status IN ('scheduled', 'in_progress', 'completed', 'cancelled')),
+          status TEXT DEFAULT 'scheduled' CHECK(status IN ('scheduled', 'in_progress', 'completed', 'cancelled', 'paid')),
           notes TEXT,
           created_by INTEGER NOT NULL,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -119,6 +119,13 @@ async function initializeDatabase() {
           FOREIGN KEY (created_by) REFERENCES users (id)
         )
       `);
+      // Novas colunas para controle operacional e pagamento
+      runSilently(`ALTER TABLE schedules ADD COLUMN in_progress_at DATETIME`);
+      runSilently(`ALTER TABLE schedules ADD COLUMN completed_at DATETIME`);
+      runSilently(`ALTER TABLE schedules ADD COLUMN payment_status TEXT`);
+      runSilently(`ALTER TABLE schedules ADD COLUMN payment_method TEXT`);
+      runSilently(`ALTER TABLE schedules ADD COLUMN amount_paid DECIMAL(10,2)`);
+      runSilently(`ALTER TABLE schedules ADD COLUMN paid_at DATETIME`);
 
       // Tabela de configurações do sistema
       db.run(`
