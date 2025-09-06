@@ -4,8 +4,11 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import api from '../services/api';
 import toast from 'react-hot-toast';
+import { useAuth } from '../contexts/AuthContext';
 
 const Schedule = () => {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
   const [schedules, setSchedules] = useState([]);
   const [loading, setLoading] = useState(true);
   // Quando vazio, significa "sem filtro de data" (listar todos)
@@ -214,7 +217,7 @@ const Schedule = () => {
                         <button className="btn-outline" onClick={() => action(schedule.id, 'cancel')}>Cancelar</button>
                       </>
                     )}
-                    {schedule.status === 'completed' && (
+                    {schedule.status === 'completed' && isAdmin && (
                       <>
                         <button className="btn-primary" onClick={() => action(schedule.id, 'pay')}>Confirmar Pagamento</button>
                       </>

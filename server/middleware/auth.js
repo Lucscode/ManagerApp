@@ -67,6 +67,18 @@ const requireEmployee = (req, res, next) => {
   next();
 };
 
+// Middleware de autorização por permissão simples
+// admin: ['finance.view','finance.pay'] ; employee: []
+const authorizePermissions = (...perms) => (req, res, next) => {
+  const role = req.user?.role;
+  const rolePerms = role === 'admin' ? ['finance.view','finance.pay'] : [];
+  const allowed = perms.every(p => rolePerms.includes(p));
+  if (!allowed) {
+    return res.status(403).json({ error: 'Acesso negado', message: 'Permissão insuficiente' });
+  }
+  next();
+};
+
 // Função para gerar token JWT
 const generateToken = (userId) => {
   return jwt.sign({ userId }, JWT_SECRET, { expiresIn: '24h' });
@@ -76,6 +88,7 @@ module.exports = {
   authenticateToken,
   requireAdmin,
   requireEmployee,
+  authorizePermissions,
   generateToken
 };
 

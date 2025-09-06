@@ -1,7 +1,7 @@
 const express = require('express');
 const moment = require('moment-timezone');
 const { query, run, get } = require('../database/init');
-const { authenticateToken, requireEmployee } = require('../middleware/auth');
+const { authenticateToken, requireEmployee, authorizePermissions } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -687,8 +687,8 @@ router.post('/:id/cancel', async (req, res) => {
   }
 });
 
-// Confirmar pagamento
-router.post('/:id/pay', async (req, res) => {
+// Confirmar pagamento (somente com permissão)
+router.post('/:id/pay', authorizePermissions('finance.pay'), async (req, res) => {
   try {
     const { id } = req.params;
     const { method, amount } = req.body;
