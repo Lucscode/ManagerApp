@@ -576,59 +576,102 @@ router.get('/available-times/:date', async (req, res) => {
 router.get('/stats/overview', async (req, res) => {
   try {
     const { start_date, end_date } = req.query;
-    
+
+    // Dia de referência para métricas "do dia"
+    const dayRef = (start_date && end_date && start_date === end_date) ? start_date : null;
+
     let dateFilter = '';
     const params = [];
-    
+
     if (start_date && end_date) {
       dateFilter = 'WHERE scheduled_date BETWEEN ? AND ?';
       params.push(start_date, end_date);
     }
-    
-    // Total de agendamentos
+
     const totalSchedules = await get(
       `SELECT COUNT(*) as total FROM schedules ${dateFilter}`,
       params
     );
-    
-    // Agendamentos por status
+
     const schedulesByStatus = await query(
       `SELECT status, COUNT(*) as count FROM schedules ${dateFilter} GROUP BY status`,
       params
     );
-    
-    // Agendamentos por dia da semana
-    const schedulesByDay = await query(
-      `SELECT 
-         CASE 
-           WHEN strftime('%w', scheduled_date) = '1' THEN 'Segunda'
-           WHEN strftime('%w', scheduled_date) = '2' THEN 'Terça'
-           WHEN strftime('%w', scheduled_date) = '3' THEN 'Quarta'
-           WHEN strftime('%w', scheduled_date) = '4' THEN 'Quinta'
-           WHEN strftime('%w', scheduled_date) = '5' THEN 'Sexta'
-           ELSE 'Outro'
-         END as day_name,
-         COUNT(*) as count
-       FROM schedules ${dateFilter}
-       GROUP BY strftime('%w', scheduled_date)
-       ORDER BY strftime('%w', scheduled_date)`,
-      params
+
+    // Concluídos do diaRef (ou hoje se não houver filtro)
+    const todayCompleted = await get(
+      dayRef ?
+      `SELECT COUNT(*) as total FROM schedules 
+       WHERE status IN ('completed','paid')
+         AND DATE(COALESCE(completed_at, updated_at), 'localtime') = DATE(?, 'localtime')` :
+      `SELECT COUNT(*) as total FROM schedules 
+       WHERE status IN ('completed','paid')
+         AND DATE(COALESCE(completed_at, updated_at), 'localtime') = DATE('now','localtime')`,
+      dayRef ? [dayRef] : []
     );
-    
-    // Faturamento total
-    const totalRevenue = await get(
-      `SELECT SUM(sv.price) as total FROM schedules s 
-       JOIN services sv ON s.service_id = sv.id 
-       ${dateFilter.replace('WHERE', 'WHERE s.')}`,
-      params
+
+    // Pendentes do diaRef (ou hoje)
+    const todayPending = await get(
+      dayRef ?
+      `SELECT COUNT(*) as total FROM schedules 
+       WHERE scheduled_date = DATE(?, 'localtime')
+         AND status IN ('scheduled','in_progress')` :
+      `SELECT COUNT(*) as total FROM schedules 
+       WHERE scheduled_date = DATE('now','localtime')
+         AND status IN ('scheduled','in_progress')`,
+      dayRef ? [dayRef] : []
     );
-    
+
+    // Total de agendamentos do dia (agendados para o dia)
+    const todayCount = await get(
+      dayRef ?
+      `SELECT COUNT(*) as total FROM schedules 
+       WHERE scheduled_date = DATE(?, 'localtime')` :
+      `SELECT COUNT(*) as total FROM schedules 
+       WHERE scheduled_date = DATE('now','localtime')`,
+      dayRef ? [dayRef] : []
+    );
+
+    // Faturamento do dia (pagamentos marcados como paid no diaRef ou hoje)
+    const todayRevenueRow = await get(
+      dayRef ?
+      `SELECT IFNULL(SUM(COALESCE(s.amount_paid, sv.price)),0) as total
+       FROM schedules s
+       JOIN services sv ON s.service_id = sv.id
+       WHERE s.status = 'paid'
+         AND DATE(s.paid_at, 'localtime') = DATE(?, 'localtime')` :
+      `SELECT IFNULL(SUM(COALESCE(s.amount_paid, sv.price)),0) as total
+       FROM schedules s
+       JOIN services sv ON s.service_id = sv.id
+       WHERE s.status = 'paid'
+         AND DATE(s.paid_at, 'localtime') = DATE('now','localtime')`,
+      dayRef ? [dayRef] : []
+    );
+
+    // Métricas do mês (mantidas caso o front ainda use)
+    const monthCount = await get(
+      `SELECT COUNT(*) as total FROM schedules 
+       WHERE strftime('%Y-%m', scheduled_date) = strftime('%Y-%m','now','localtime')`
+    );
+
+    const monthRevenueRow = await get(
+      `SELECT IFNULL(SUM(COALESCE(s.amount_paid, sv.price)),0) as total
+       FROM schedules s
+       JOIN services sv ON s.service_id = sv.id
+       WHERE s.status = 'paid'
+         AND strftime('%Y-%m', s.paid_at, 'localtime') = strftime('%Y-%m','now','localtime')`
+    );
+
     res.json({
       totalSchedules: totalSchedules.total,
       schedulesByStatus,
-      schedulesByDay,
-      totalRevenue: totalRevenue.total || 0,
-      period: { start_date, end_date }
+      todayCompleted: todayCompleted.total,
+      todayPending: todayPending.total,
+      todayCount: todayCount.total,
+      todayRevenue: todayRevenueRow.total,
+      monthCount: monthCount.total,
+      monthRevenue: monthRevenueRow.total,
+      period: { start_date, end_date, dayRef }
     });
   } catch (error) {
     console.error('Erro ao buscar estatísticas:', error);

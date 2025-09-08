@@ -43,14 +43,10 @@ const Dashboard = () => {
       const from = format(startOfMonth, 'yyyy-MM-dd');
       const to = format(new Date(), 'yyyy-MM-dd');
 
-      // Carregar estatísticas principais existentes
-      const statsResponse = await api.get('/api/schedule/stats/overview', {
-        params: {
-          start_date: format(new Date().setDate(1), 'yyyy-MM-dd'),
-          end_date: format(new Date(), 'yyyy-MM-dd')
-        }
-      });
+      // Estatísticas do dia (sem filtros, o backend usa o dia atual)
+      const statsResponse = await api.get('/api/schedule/stats/overview');
 
+      // Carregar agendamentos recentes
       const schedulesResponse = await api.get('/api/schedule', {
         params: {
           start_date: format(new Date(), 'yyyy-MM-dd'),
@@ -58,13 +54,12 @@ const Dashboard = () => {
         }
       });
 
-      // Carregar relatórios (faturamento e top serviços)
+      // Carregar relatórios (faturamento e top serviços do mês)
       const [revenueResp, topServicesResp] = await Promise.all([
         api.get('/api/reports/revenue', { params: { from, to } }),
         api.get('/api/reports/top-services', { params: { from, to, limit: 5 } })
       ]);
 
-      // Normalizar dados para gráficos
       const revenueRows = (revenueResp.data?.rows || []).map(r => ({
         date: r.date,
         revenue: Number(r.revenue || 0),
@@ -126,23 +121,47 @@ const Dashboard = () => {
     );
   }
 
+  const todayCount = stats?.todayCount ?? 0;
+  const todayRevenue = Number(stats?.todayRevenue ?? 0);
+  const todayCompleted = stats?.todayCompleted ?? 0;
+  const todayPending = stats?.todayPending ?? 0;
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
         <p className="mt-1 text-sm text-gray-500">
-          Visão geral do sistema - {format(new Date(), "EEEE, d 'de' MMMM 'de' yyyy", { locale: ptBR })}
+          Visão do dia - {format(new Date(), "EEEE, d 'de' MMMM 'de' yyyy", { locale: ptBR })}
         </p>
       </div>
 
-      {/* Gráficos */}
+      {/* Cards do dia */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="card"><div className="card-body">
+          <div className="text-sm text-gray-500">Agendamentos do Dia</div>
+          <div className="text-2xl font-semibold text-gray-900">{todayCount}</div>
+        </div></div>
+        <div className="card"><div className="card-body">
+          <div className="text-sm text-gray-500">Faturamento do Dia</div>
+          <div className="text-2xl font-semibold text-gray-900">R$ {todayRevenue.toFixed(2)}</div>
+        </div></div>
+        <div className="card"><div className="card-body">
+          <div className="text-sm text-gray-500">Concluídos Hoje</div>
+          <div className="text-2xl font-semibold text-gray-900">{todayCompleted}</div>
+        </div></div>
+        <div className="card"><div className="card-body">
+          <div className="text-sm text-gray-500">Pendentes Hoje</div>
+          <div className="text-2xl font-semibold text-gray-900">{todayPending}</div>
+        </div></div>
+      </div>
+
+      {/* Gráficos (mês) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Faturamento por dia (barras) */}
         <div className="card">
           <div className="card-header">
             <h2 className="text-lg font-semibold text-gray-900 flex items-center">
-              <DollarSign className="h-5 w-5 mr-2 text-primary-600" /> Faturamento (mês atual)
+              <DollarSign className="h-5 w-5 mr-2 text-primary-600" /> Faturamento (mês)
             </h2>
           </div>
           <div className="card-body">
@@ -162,11 +181,10 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Top serviços (barras) */}
         <div className="card">
           <div className="card-header">
             <h2 className="text-lg font-semibold text-gray-900 flex items-center">
-              <CheckCircle className="h-5 w-5 mr-2 text-primary-600" /> Serviços mais vendidos
+              <CheckCircle className="h-5 w-5 mr-2 text-primary-600" /> Serviços mais vendidos (mês)
             </h2>
           </div>
           <div className="card-body">
@@ -187,141 +205,7 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Cards de estatísticas */}
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="card">
-          <div className="card-body">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <Calendar className="h-8 w-8 text-primary-600" />
-              </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">
-                    Agendamentos do Mês
-                  </dt>
-                  <dd className="text-lg font-medium text-gray-900">
-                    {stats?.totalSchedules || 0}
-                  </dd>
-                </dl>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="card">
-          <div className="card-body">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <DollarSign className="h-8 w-8 text-success-600" />
-              </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">
-                    Faturamento do Mês
-                  </dt>
-                  <dd className="text-lg font-medium text-gray-900">
-                    R$ {stats?.totalRevenue?.toFixed(2) || '0,00'}
-                  </dd>
-                </dl>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="card">
-          <div className="card-body">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <CheckCircle className="h-8 w-8 text-success-600" />
-              </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">
-                    Concluídos Hoje
-                  </dt>
-                  <dd className="text-lg font-medium text-gray-900">
-                    {stats?.schedulesByStatus?.find(s => s.status === 'completed')?.count || 0}
-                  </dd>
-                </dl>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="card">
-          <div className="card-body">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <Clock className="h-8 w-8 text-warning-600" />
-              </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">
-                    Pendentes Hoje
-                  </dt>
-                  <dd className="text-lg font-medium text-gray-900">
-                    {stats?.schedulesByStatus?.find(s => s.status === 'scheduled')?.count || 0}
-                  </dd>
-                </dl>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Gráficos e estatísticas detalhadas */}
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-        {/* Agendamentos por status */}
-        <div className="card">
-          <div className="card-header">
-            <h3 className="text-lg leading-6 font-medium text-gray-900">
-              Agendamentos por Status
-            </h3>
-          </div>
-          <div className="card-body">
-            <div className="space-y-4">
-              {stats?.schedulesByStatus?.map((item) => (
-                <div key={item.status} className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(item.status)}`}>
-                      {getStatusText(item.status)}
-                    </span>
-                  </div>
-                  <span className="text-sm font-medium text-gray-900">
-                    {item.count}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Agendamentos por dia da semana */}
-        <div className="card">
-          <div className="card-header">
-            <h3 className="text-lg leading-6 font-medium text-gray-900">
-              Agendamentos por Dia da Semana
-            </h3>
-          </div>
-          <div className="card-body">
-            <div className="space-y-4">
-              {stats?.schedulesByDay?.map((item) => (
-                <div key={item.day_name} className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-gray-700">
-                    {item.day_name}
-                  </span>
-                  <span className="text-sm font-medium text-gray-900">
-                    {item.count}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Agendamentos recentes */}
+      {/* Agendamentos recentes (já existente) */}
       <div className="card">
         <div className="card-header">
           <h3 className="text-lg leading-6 font-medium text-gray-900">
