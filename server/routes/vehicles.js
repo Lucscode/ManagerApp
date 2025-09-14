@@ -263,9 +263,9 @@ router.delete('/:id', async (req, res) => {
     // Verificar se veículo tem agendamentos futuros
     const futureSchedules = await get(
       `SELECT COUNT(*) as count FROM schedules s 
-       JOIN vehicles v ON s.vehicle_id = v.id 
-       WHERE v.id = ? AND s.scheduled_date >= DATE('now') 
-       AND s.status IN ('scheduled', 'in_progress')`,
+       WHERE s.vehicle_id = ? 
+         AND DATE(s.scheduled_date, 'localtime') >= DATE('now','localtime')
+         AND s.status IN ('scheduled', 'in_progress')`,
       [id]
     );
     

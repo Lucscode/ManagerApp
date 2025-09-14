@@ -99,8 +99,28 @@ Thumbs.db
 # Build outputs
 build/
 dist/
+client/build/
 
 # Server database files
-server/manager_app.db
+server/database/*.db
 server/*.db
+
+# PM2 logs and runtime
+logs/
+*.log
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Docker
+.dockerignore
+docker-compose.override.yml
+
+# Temporary files
+de performance*
+
+# Documentation
+README.md
+INSTALACAO.md
 

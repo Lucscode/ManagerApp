@@ -251,17 +251,27 @@ const PortalNewSchedule = () => {
               <label className="label">Forma de pagamento</label>
               <div className="flex gap-2">
                 {[
-                  { key: 'pix', label: 'PIX' },
-                  { key: 'cartao', label: 'Cartão' },
-                  { key: 'dinheiro', label: 'Dinheiro' },
+                  { key: 'pix', label: 'PIX', disabled: true },
+                  { key: 'cartao', label: 'Cartão', disabled: true },
+                  { key: 'dinheiro', label: 'Dinheiro', disabled: false },
                 ].map(opt => (
-                  <button type="button" key={opt.key} onClick={() => setPaymentMethod(opt.key)} className={`px-3 py-2 rounded border ${paymentMethod===opt.key ? 'bg-primary-600 text-white border-primary-600' : 'bg-white text-gray-700 border-gray-300'}`}>
+                  <button
+                    type="button"
+                    key={opt.key}
+                    disabled={opt.disabled}
+                    title={opt.disabled ? 'Em manutenção' : ''}
+                    onClick={() => { if (!opt.disabled) setPaymentMethod(opt.key); }}
+                    className={`px-3 py-2 rounded border ${
+                      paymentMethod===opt.key && !opt.disabled ? 'bg-primary-600 text-white border-primary-600' : 'bg-white text-gray-700 border-gray-300'
+                    } ${opt.disabled ? 'opacity-60 cursor-not-allowed' : ''}`}
+                  >
                     {opt.label}
+                    {opt.disabled && <span className="ml-2 text-xs">(em manutenção)</span>}
                   </button>
                 ))}
               </div>
-              <p className="text-xs text-gray-500 mt-1">
-                PIX/Cartão: pagamento online (confirmado no balcão). Dinheiro: pago presencialmente.
+              <p className="text-xs text-warning-600 mt-1">
+                PIX e Cartão estão em manutenção no momento. Utilize "Dinheiro" para concluir o agendamento.
               </p>
             </div>
             <div className="flex gap-3">

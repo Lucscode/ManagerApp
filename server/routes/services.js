@@ -399,19 +399,19 @@ router.delete('/:id', async (req, res) => {
       });
     }
     
-    // Verificar se serviço tem agendamentos futuros
+    // Verificar se serviço tem agendamentos FUTUROS (considerando horário local)
     const futureSchedules = await get(
       `SELECT COUNT(*) as count FROM schedules s 
-       JOIN services sv ON s.service_id = sv.id 
-       WHERE sv.id = ? AND s.scheduled_date >= DATE('now') 
-       AND s.status IN ('scheduled', 'in_progress')`,
+       WHERE s.service_id = ? 
+         AND DATE(s.scheduled_date, 'localtime') >= DATE('now','localtime')
+         AND s.status IN ('scheduled', 'in_progress')`,
       [id]
     );
     
     if (futureSchedules.count > 0) {
       return res.status(400).json({
         error: 'Serviço com agendamentos futuros',
-        message: 'Não é possível excluir serviço que possui agendamentos futuros'
+        message: 'Não é possível excluir serviço que possui agendamentos futuros ativos'
       });
     }
     
